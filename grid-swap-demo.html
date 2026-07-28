@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拖拽交换格子 · Demo</title>
+<style>
+  :root{
+    --bg: #0d1117;
+    --panel: #12181f;
+    --grid-line: #1f2a35;
+    --cell-bg: #16202b;
+    --cell-bg-hover: #1c2b3a;
+    --accent: #5ee6c8;
+    --accent-dim: #2f7d6d;
+    --text: #d7e2ea;
+    --text-dim: #6b7d8c;
+    --font-mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(94,230,200,0.06), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(94,230,200,0.04), transparent 40%);
+    color: var(--text);
+    font-family: var(--font-mono);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 24px;
+    padding: 40px 20px;
+  }
+
+  header{
+    text-align:center;
+  }
+  header h1{
+    margin:0 0 6px;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  header p{
+    margin:0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .toolbar{
+    display:flex;
+    gap: 10px;
+    align-items:center;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .toolbar label{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+  }
+  .toolbar input[type="number"]{
+    width: 52px;
+    background: var(--panel);
+    border: 1px solid var(--grid-line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+  .toolbar button{
+    background: var(--panel);
+    border: 1px solid var(--grid-line);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .toolbar button:hover{
+    border-color: var(--accent-dim);
+    color: #fff;
+  }
+
+  #board{
+    position: relative;
+    display: grid;
+    gap: 4px;
+    padding: 4px;
+    background: var(--panel);
+    border: 1px solid var(--grid-line);
+    border-radius: 8px;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .cell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--cell-bg);
+    border: 1px solid var(--grid-line);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: grab;
+    transition: background .12s, transform .18s cubic-bezier(.2,.8,.2,1), border-color .12s;
+    will-change: transform;
+  }
+  .cell:hover{
+    background: var(--cell-bg-hover);
+    color: var(--text);
+  }
+
+  .cell.dragging{
+    position: fixed;
+    z-index: 50;
+    cursor: grabbing;
+    background: var(--cell-bg-hover);
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    transition: none;
+    pointer-events: none;
+  }
+
+  .cell.placeholder{
+    opacity: 0.35;
+    border-style: dashed;
+  }
+
+  .cell.drop-target{
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(94,230,200,0.08);
+  }
+
+  footer{
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  footer kbd{
+    background: var(--panel);
+    border: 1px solid var(--grid-line);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>拖拽交换格子</h1>
+  <p>拖动任意格子到另一个格子上松开，两者内容互换位置</p>
+</header>
+
+<div class="toolbar">
+  <label>行 <input type="number" id="rowsInput" min="2" max="16" value="8"></label>
+  <label>列 <input type="number" id="colsInput" min="2" max="16" value="8"></label>
+  <label>格宽 <input type="number" id="sizeInput" min="30" max="120" value="56"></label>
+  <button id="rebuildBtn">重建网格</button>
+  <button id="resetBtn">恢复初始顺序</button>
+</div>
+
+<div id="board"></div>
+
+<footer>提示：内容是通用的 <kbd>row-col</kbd> 数字标签，换成图片 / 图标 / 任意 DOM 都可以复用同一套逻辑</footer>
+
+<script>
+/**
+ * ============ 通用拖拽交换网格 (Swap Grid) ============
+ * 设计目标：数据与视图分离，交换型语义，支持任意 rows x cols。
+ * 复用方式：只需替换 renderCellContent()，其余拖拽逻辑无需改动。
+ */
+
+class SwapGrid {
+  constructor(container, { rows, cols, cellSize, gap = 4, renderCellContent }) {
+    this.container = container;
+    this.rows = rows;
+    this.cols = cols;
+    this.cellSize = cellSize;
+    this.gap = gap;
+    this.renderCellContent = renderCellContent || ((idx) => String(idx));
+
+    // 数据模型：data[i] 存的是"内容标识"，i 是当前所在的格子位置
+    this.initialData = Array.from({ length: rows * cols }, (_, i) => i);
+    this.data = [...this.initialData];
+
+    // 拖拽运行时状态
+    this.drag = null;
+
+    this._buildDOM();
+    this._bindEvents();
+  }
+
+  _buildDOM() {
+    const { container, rows, cols, cellSize, gap } = this;
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    container.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+    container.style.gap = `${gap}px`;
+
+    this.cellEls = this.data.map((contentId, idx) => {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.dataset.index = idx;
+      el.textContent = this.renderCellContent(contentId, this.rows, this.cols);
+      container.appendChild(el);
+      return el;
+    });
+  }
+
+  _bindEvents() {
+    this.container.addEventListener('pointerdown', this._onPointerDown.bind(this));
+  }
+
+  _onPointerDown(e) {
+    const cellEl = e.target.closest('.cell:not(.placeholder):not(.dragging)');
+    if (!cellEl || this.drag) return;
+
+    const startIndex = Number(cellEl.dataset.index);
+    const rect = cellEl.getBoundingClientRect();
+
+    this.drag = {
+      startIndex,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      currentTarget: null,
+    };
+
+    cellEl.classList.add('dragging');
+    cellEl.style.width = `${rect.width}px`;
+    cellEl.style.height = `${rect.height}px`;
+    cellEl.style.left = `${rect.left}px`;
+    cellEl.style.top = `${rect.top}px`;
+
+    // 原位置留一个占位格
+    const placeholder = document.createElement('div');
+    placeholder.className = 'cell placeholder';
+    placeholder.dataset.placeholderFor = startIndex;
+    placeholder.style.gridColumn = (startIndex % this.cols) + 1;
+    placeholder.style.gridRow = Math.floor(startIndex / this.cols) + 1;
+    this.container.insertBefore(placeholder, this.container.children[startIndex]);
+    this.drag.placeholder = placeholder;
+
+    document.body.appendChild(cellEl); // 提升层级，避免被 grid 布局约束
+    this.drag.floatingEl = cellEl;
+
+    const onMove = this._onPointerMove.bind(this);
+    const onUp = this._onPointerUp.bind(this);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp, { once: true });
+    this.drag._onMove = onMove;
+  }
+
+  _onPointerMove(e) {
+    if (!this.drag) return;
+    const { floatingEl, offsetX, offsetY } = this.drag;
+    floatingEl.style.left = `${e.clientX - offsetX}px`;
+    floatingEl.style.top = `${e.clientY - offsetY}px`;
+
+    // 找到指针当前悬停的目标格子
+    floatingEl.style.pointerEvents = 'none';
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCell = under ? under.closest('.cell:not(.dragging):not(.placeholder)') : null;
+
+    if (this.drag.currentTarget && this.drag.currentTarget !== targetCell) {
+      this.drag.currentTarget.classList.remove('drop-target');
+    }
+    if (targetCell) {
+      targetCell.classList.add('drop-target');
+    }
+    this.drag.currentTarget = targetCell;
+  }
+
+  _onPointerUp(e) {
+    if (!this.drag) return;
+    window.removeEventListener('pointermove', this.drag._onMove);
+
+    const { startIndex, floatingEl, placeholder, currentTarget } = this.drag;
+    const ANIM_MS = 180;
+    const EASING = 'cubic-bezier(.2,.8,.2,1)';
+
+    // 没有有效目标（拖出容器外 / 松手在原地）：弹回原位，不交换
+    if (!currentTarget) {
+      const originRect = placeholder.getBoundingClientRect();
+      floatingEl.style.transition = `left ${ANIM_MS}ms ${EASING}, top ${ANIM_MS}ms ${EASING}`;
+      requestAnimationFrame(() => {
+        floatingEl.style.left = `${originRect.left}px`;
+        floatingEl.style.top = `${originRect.top}px`;
+      });
+      setTimeout(() => {
+        floatingEl.remove();
+        placeholder.remove();
+        this.drag = null;
+      }, ANIM_MS);
+      return;
+    }
+
+    const targetIndex = Number(currentTarget.dataset.index);
+    const targetRect = currentTarget.getBoundingClientRect();
+    const startRect = placeholder.getBoundingClientRect();
+    currentTarget.classList.remove('drop-target');
+
+    // 克隆目标格子的内容，做第二个"飞回"起始位置的浮动元素，
+    // 这样视觉上是"两个格子互相飞向对方"，而不是瞬间跳变
+    const flyingBack = currentTarget.cloneNode(true);
+    flyingBack.classList.remove('drop-target');
+    flyingBack.classList.add('dragging');
+    flyingBack.style.width = `${targetRect.width}px`;
+    flyingBack.style.height = `${targetRect.height}px`;
+    flyingBack.style.left = `${targetRect.left}px`;
+    flyingBack.style.top = `${targetRect.top}px`;
+    flyingBack.style.transition = 'none';
+    document.body.appendChild(flyingBack);
+
+    // 原目标格子在动画期间先隐藏，避免和 flyingBack 重叠闪烁
+    currentTarget.style.visibility = 'hidden';
+
+    // 被拖拽的格子飞向目标格；克隆出的格子飞回起始格
+    floatingEl.style.transition = `left ${ANIM_MS}ms ${EASING}, top ${ANIM_MS}ms ${EASING}`;
+    requestAnimationFrame(() => {
+      floatingEl.style.left = `${targetRect.left}px`;
+      floatingEl.style.top = `${targetRect.top}px`;
+      flyingBack.style.transition = `left ${ANIM_MS}ms ${EASING}, top ${ANIM_MS}ms ${EASING}`;
+      flyingBack.style.left = `${startRect.left}px`;
+      flyingBack.style.top = `${startRect.top}px`;
+    });
+
+    setTimeout(() => {
+      // 动画结束后再真正提交数据交换并重建网格
+      [this.data[startIndex], this.data[targetIndex]] =
+        [this.data[targetIndex], this.data[startIndex]];
+
+      floatingEl.remove();
+      flyingBack.remove();
+      placeholder.remove();
+      this.drag = null;
+      this._buildDOM();
+    }, ANIM_MS);
+  }
+
+  reset() {
+    this.data = [...this.initialData];
+    this._buildDOM();
+  }
+
+  rebuild({ rows, cols, cellSize }) {
+    this.rows = rows;
+    this.cols = cols;
+    this.cellSize = cellSize;
+    this.initialData = Array.from({ length: rows * cols }, (_, i) => i);
+    this.data = [...this.initialData];
+    this._buildDOM();
+  }
+}
+
+// ---------- 页面接入：内容渲染为 "row-col" ----------
+function renderRowColLabel(contentId, rows, cols) {
+  const row = Math.floor(contentId / cols);
+  const col = contentId % cols;
+  return `${row}-${col}`;
+}
+
+const board = document.getElementById('board');
+const grid = new SwapGrid(board, {
+  rows: 8,
+  cols: 8,
+  cellSize: 56,
+  renderCellContent: renderRowColLabel,
+});
+
+document.getElementById('rebuildBtn').addEventListener('click', () => {
+  const rows = Number(document.getElementById('rowsInput').value) || 8;
+  const cols = Number(document.getElementById('colsInput').value) || 8;
+  const cellSize = Number(document.getElementById('sizeInput').value) || 56;
+  grid.rebuild({ rows, cols, cellSize });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  grid.reset();
+});
+</script>
+</body>
+</html>
