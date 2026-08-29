@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OA 加班申请 Demo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Arial,sans-serif}
+.app{min-height:100vh;display:flex}.sidebar{width:236px;background:#151a2d;color:#fff;padding:24px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;padding:4px 10px 28px}.brand-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#f97316,#ef4444);display:grid;place-items:center}
+.nav-title{font-size:11px;color:#70788f;padding:0 12px;margin:10px 0 8px}.nav{display:flex;flex-direction:column;gap:4px}.nav a{color:#aeb5c8;text-decoration:none;padding:11px 12px;border-radius:9px;font-size:14px;display:flex;gap:11px}.nav a.active{background:#292f4b;color:#fff}.nav a:hover{background:#222842;color:#fff}
+.profile{margin-top:auto;border-top:1px solid #2c3249;padding:18px 8px 4px;display:flex;gap:10px;align-items:center}.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:grid;place-items:center;font-weight:700}.profile small{display:block;color:#8991a6;font-size:11px;margin-top:2px}
+.main{flex:1;min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid #e8ebf2;display:flex;align-items:center;justify-content:space-between;padding:0 34px}.crumb{font-size:13px;color:#7b8497}.crumb b{color:#172033}
+.inner{max-width:1280px;margin:auto;padding:30px 34px 50px}.head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}h1{margin:0 0 6px;font-size:25px}.sub{font-size:13px;color:#7b8497}.tag{padding:7px 12px;border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;border-radius:20px;font-size:12px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px}.card{background:#fff;border:1px solid #e8ebf2;border-radius:14px;box-shadow:0 10px 30px rgba(27,39,74,.06)}.form{padding:25px}
+.section{padding-bottom:25px;margin-bottom:25px;border-bottom:1px solid #e8ebf2}.section:last-child{border:0;padding:0;margin:0}.title{font-size:15px;font-weight:700;margin-bottom:17px;display:flex;gap:9px;align-items:center}.num{width:24px;height:24px;border-radius:7px;background:#fff7ed;color:#ea580c;display:grid;place-items:center;font-size:12px;font-weight:800}
+label{display:block;font-size:12px;color:#5e687b;margin-bottom:8px}input,select,textarea{font:inherit;border:1px solid #dfe3eb;border-radius:9px;background:#fff;color:#172033;outline:none}input[type=date],select{width:100%;height:42px;padding:0 12px}textarea{width:100%;min-height:95px;padding:12px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:#fb923c;box-shadow:0 0 0 3px #fff7ed}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.selected{margin-top:12px;padding:10px 12px;background:#f8fafc;border-radius:8px;color:#657085;font-size:12px}.selected b{color:#172033}
+.time-panel{border:1px solid #e5e8ef;border-radius:13px;padding:20px;background:#fcfcfd}.time-head{display:flex;justify-content:space-between;align-items:flex-end}.date-big{font-size:17px;font-weight:800}.date-big span{font-size:11px;color:#7b8497;font-weight:500;margin-left:7px}.duration{text-align:right}.duration small{display:block;color:#7b8497;font-size:10px}.duration strong{font-size:21px;color:#ea580c}
+.range{position:relative;height:42px;margin:30px 5px 13px}.track,.fill{position:absolute;left:0;right:0;top:17px;height:7px;border-radius:8px}.track{background:#e6e9ef}.fill{left:var(--left);right:calc(100% - var(--right));background:linear-gradient(90deg,#fb923c,#ea580c)}
+.range input[type=range]{position:absolute;left:0;top:0;width:100%;height:40px;margin:0;appearance:none;background:transparent;pointer-events:none}.range input::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #ea580c;box-shadow:0 2px 7px #0002;pointer-events:auto;cursor:grab}.range input::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #ea580c;box-shadow:0 2px 7px #0002;pointer-events:auto;cursor:grab}
+.scale{display:flex;justify-content:space-between;color:#9aa2b2;font-size:10px}.times{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:17px}.time-box{background:#fff;border:1px solid #e0e4eb;border-radius:10px;padding:10px 13px}.time-box small{display:block;color:#7b8497;font-size:10px;margin-bottom:3px}.time-box strong{font-size:20px}.arrow{color:#a1a8b6}.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.quick button{border:1px solid #e0e4eb;background:#fff;color:#596275;border-radius:7px;padding:7px 11px;font-size:11px;cursor:pointer}.quick button:hover{border-color:#fb923c;color:#c2410c;background:#fff7ed}.hint{margin-top:12px;font-size:11px;color:#8a91a0;line-height:1.6}.hint b{color:#c2410c}
+.radio-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.radio{border:1px solid #e0e4eb;border-radius:9px;padding:11px;cursor:pointer}.radio.active{border-color:#fb923c;background:#fff7ed}.radio b{font-size:12px}.radio span{display:block;font-size:10px;color:#7b8497;margin-top:3px}
+.total{background:linear-gradient(135deg,#fff7ed,#fffaf7);border:1px solid #fed7aa;border-radius:12px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}.total small{display:block;color:#7b8497;font-size:11px;margin-bottom:4px}.total strong{font-size:25px;color:#9a3412}.total-right{text-align:right}.total-right b{font-size:14px}.total-right span{display:block;color:#7b8497;font-size:11px;margin-top:3px}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.btn{height:40px;border-radius:9px;padding:0 18px;border:1px solid #dfe3eb;background:#fff;color:#596275;font-weight:600;cursor:pointer}.btn.primary{background:#ea580c;border-color:#ea580c;color:#fff;box-shadow:0 5px 12px #ea580c2b}
+.side{display:flex;flex-direction:column;gap:16px}.side-card{padding:20px}.side-title{font-size:14px;font-weight:700;margin-bottom:17px}.balance{display:flex;justify-content:space-between;align-items:end}.balance strong{font-size:27px}.balance strong span{font-size:13px}.balance small{color:#7b8497;font-size:11px}.bar{height:7px;background:#f0f1f5;border-radius:8px;margin-top:12px;overflow:hidden}.bar i{display:block;width:42%;height:100%;background:linear-gradient(90deg,#f97316,#fb923c)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#f8fafc;border-radius:8px;padding:10px}.stat b{font-size:14px}.stat span{display:block;color:#8a91a0;font-size:10px;margin-top:2px}
+.info{display:flex;gap:10px;padding:10px 0}.ico{width:28px;height:28px;border-radius:8px;background:#fff7ed;color:#ea580c;display:grid;place-items:center;font-size:11px;flex:none}.info b{font-size:12px}.info span{display:block;color:#7b8497;font-size:10px;margin-top:3px}.step{display:flex;gap:10px;position:relative;padding-bottom:18px}.step:last-child{padding-bottom:0}.step:not(:last-child):after{content:"";position:absolute;left:11px;top:24px;height:calc(100% - 16px);width:1px;background:#e5e7eb}.dot{width:23px;height:23px;border-radius:50%;background:#fff7ed;color:#ea580c;display:grid;place-items:center;font-size:10px;font-weight:800;z-index:1}.step p{margin:2px 0;font-size:12px}.step small{font-size:10px;color:#7b8497}
+.toast{position:fixed;right:24px;bottom:24px;background:#171c2d;color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(10px);transition:.25s}.toast.show{opacity:1;transform:none}
+@media(max-width:900px){.sidebar{display:none}.layout{grid-template-columns:1fr}.inner{padding:20px 15px}.topbar{padding:0 15px}.grid2,.radio-row{grid-template-columns:1fr}.times{grid-template-columns:1fr}.arrow{text-align:center}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<div class="brand"><div class="brand-icon">↗</div> Nova OA</div>
+<div class="nav-title">工作台</div>
+<nav class="nav"><a href="#">⌂　首页</a><a href="#">▣　我的待办 <span style="margin-left:auto;background:#ef4444;color:#fff;border-radius:10px;padding:2px 6px;font-size:10px">3</span></a><a href="#">◷　请假管理</a><a class="active" href="#">◴　加班申请</a><a href="#">▤　考勤记录</a></nav>
+<div class="nav-title" style="margin-top:22px">员工服务</div><nav class="nav"><a href="#">◎　我的申请</a><a href="#">▦　审批记录</a><a href="#">⚙　个人设置</a></nav>
+<div class="profile"><div class="avatar">K</div><div><b style="font-size:12px">Kevin</b><small>产品开发部 · 员工</small></div></div>
+</aside>
+<main class="main">
+<header class="topbar"><div class="crumb">工作台　/　加班管理　/　<b>新建申请</b></div><div style="font-size:13px;color:#687188">⌕ 搜索　　◔ 通知　　<b style="color:#31384b">Kevin ▾</b></div></header>
+<div class="inner">
+<div class="head"><div><h1>加班申请</h1><div class="sub">选择具体日期，通过半小时刻度滑块精确设置加班开始与结束时间</div></div><div class="tag">最小单位：30 分钟</div></div>
+<div class="layout">
+<section class="card form">
+
+<div class="section">
+<div class="title"><span class="num">1</span>选择加班日期</div>
+<div class="grid2"><div><label>加班日期</label><input id="date" type="date" value="2026-08-28"></div><div><label>加班类型</label><select><option>工作日延时加班</option><option>周末加班</option><option>法定节假日加班</option></select></div></div>
+<div class="selected">当前选择：<b id="selectedDate">2026年08月28日　星期五</b>　·　<span id="dayType">工作日</span></div>
+</div>
+
+<div class="section">
+<div class="title"><span class="num">2</span>设置加班时间</div>
+<div class="time-panel">
+<div class="time-head"><div class="date-big" id="panelDate">08月28日 <span>星期五 · 工作日</span></div><div class="duration"><small>加班时长</small><strong id="duration">2小时30分钟</strong></div></div>
+
+<div class="range" id="range">
+<div class="track"></div><div class="fill" id="fill"></div>
+<input id="startRange" type="range" min="16" max="47" step="1" value="37">
+<input id="endRange" type="range" min="16" max="47" step="1" value="42">
+</div>
+<div class="scale"><span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span><span>23:30</span></div>
+
+<div class="times">
+<div class="time-box"><small>开始时间</small><strong id="startText">18:30</strong></div>
+<div class="arrow">→</div>
+<div class="time-box"><small>结束时间</small><strong id="endText">21:00</strong></div>
+</div>
+
+<div class="quick">
+<button data-start="17" data-end="21">08:30 → 10:30</button>
+<button data-start="17" data-end="22">08:30 → 11:00</button>
+<button data-start="28" data-end="35">14:00 → 17:30</button>
+<button data-start="36" data-end="40">+2小时</button>
+<button data-start="36" data-end="44">+4小时</button>
+<button data-start="36" data-end="47">+5小时30分</button>
+</div>
+<div class="hint">拖动左右两个圆点调整区间。<b>每一格 = 30 分钟</b>。例如：<b>8.5 → 11</b> 会显示为 <b>08:30 → 11:00</b>；<b>14 → 17.5</b> 会显示为 <b>14:00 → 17:30</b>。</div>
+</div>
+</div>
+
+<div class="section">
+<div class="title"><span class="num">3</span>加班用途</div>
+<div class="radio-row" id="purpose"><div class="radio active"><b>项目开发</b><span>版本、功能、技术任务</span></div><div class="radio"><b>紧急任务</b><span>线上问题、紧急需求</span></div><div class="radio"><b>其他</b><span>其他工作事项</span></div></div>
+</div>
+
+<div class="section">
+<div class="title"><span class="num">4</span>工时结果</div>
+<div class="total"><div><small>本次加班</small><strong id="total">2小时30分钟</strong></div><div class="total-right"><b id="workDays">折合 0.31 个工作日</b><span>按 8 小时 / 工作日计算</span></div></div>
+<div style="margin-top:12px;font-size:11px;color:#7b8497">💡 超过 8 小时后自动转换，例如：<b style="color:#c2410c">12小时 = 1天 + 4小时</b>。</div>
+</div>
+
+<div class="section">
+<div class="title"><span class="num">5</span>加班说明</div>
+<textarea id="reason" maxlength="200" placeholder="请填写具体加班事项，例如：完成 XX 项目上线前的接口联调与问题修复"></textarea>
+<div style="text-align:right;color:#9aa2b2;font-size:10px;margin-top:5px"><span id="count">0</span> / 200</div>
+<div class="actions"><button class="btn" id="cancel">取消</button><button class="btn primary" id="submit">提交申请</button></div>
+</div>
+
+</section>
+
+<aside class="side">
+<div class="card side-card"><div class="side-title">我的调休余额</div><div class="balance"><strong>18<span>小时</span></strong><small>审批通过后增加</small></div><div class="bar"><i></i></div><div class="stats"><div class="stat"><b>26h</b><span>累计加班</span></div><div class="stat"><b>8h</b><span>已调休</span></div></div></div>
+<div class="card side-card"><div class="side-title">工时规则</div><div class="info"><div class="ico">30m</div><div><b>最小计算单位 30 分钟</b><span>滑块每次移动半小时，避免手动输入误差</span></div></div><div class="info"><div class="ico">8h</div><div><b>1个工作日 = 8小时</b><span>系统内部建议按分钟保存，页面按天+小时展示</span></div></div><div class="info"><div class="ico">↗</div><div><b>审批通过进入调休账户</b><span>提交后才会增加可调休余额</span></div></div></div>
+<div class="card side-card"><div class="side-title">审批流程</div><div class="step"><div class="dot">1</div><div><p>直属主管审批</p><small>确认加班必要性</small></div></div><div class="step"><div class="dot">2</div><div><p>部门负责人审批</p><small>确认加班工时</small></div></div><div class="step"><div class="dot">3</div><div><p>HR 备案</p><small>审批后进入工时账户</small></div></div></div>
+</aside>
+</div>
+</div>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const MIN=16,MAX=47;
+const sr=document.getElementById('startRange'),er=document.getElementById('endRange');
+const pad=n=>String(n).padStart(2,'0');
+function timeText(v){const h=Math.floor(v/2),m=v%2?30:0;return pad(h)+':'+pad(m)}
+function formatDuration(min){
+ const d=Math.floor(min/480),remain=min%480,h=Math.floor(remain/60),m=remain%60;
+ if(d>0)return d+'天'+(h?' + '+h+'小时':'')+(m?' '+m+'分钟':'');
+ return h+'小时'+(m?m+'分钟':'');
+}
+function update(){
+ let s=+sr.value,e=+er.value;
+ if(e<=s)e=s+1;
+ const mins=(e-s)*30;
+ document.getElementById('startText').textContent=timeText(s);
+ document.getElementById('endText').textContent=timeText(e);
+ document.getElementById('duration').textContent=formatDuration(mins);
+ document.getElementById('total').textContent=formatDuration(mins);
+ document.getElementById('workDays').textContent='折合 '+(mins/480).toFixed(2)+' 个工作日';
+ document.getElementById('range').style.setProperty('--left',((s-MIN)/(MAX-MIN)*100)+'%');
+ document.getElementById('range').style.setProperty('--right',((e-MIN)/(MAX-MIN)*100)+'%');
+}
+sr.addEventListener('input',()=>{if(+sr.value>=+er.value)sr.value=+er.value-1;update()});
+er.addEventListener('input',()=>{if(+er.value<=+sr.value)er.value=+sr.value+1;update()});
+document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{sr.value=b.dataset.start;er.value=Math.min(MAX,+b.dataset.end);if(+er.value<=+sr.value)er.value=+sr.value+1;update()});
+document.getElementById('date').addEventListener('change',e=>{
+ const d=new Date(e.target.value+'T00:00:00'),w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+ const [y,mo,da]=e.target.value.split('-'),rest=d.getDay()===0||d.getDay()===6;
+ document.getElementById('selectedDate').textContent=`${y}年${mo}月${da}日　${w}`;
+ document.getElementById('dayType').textContent=rest?'休息日':'工作日';
+ document.getElementById('panelDate').innerHTML=`${mo}月${da}日 <span>${w} · ${rest?'休息日':'工作日'}</span>`;
+});
+document.querySelectorAll('.radio').forEach(r=>r.onclick=()=>{document.querySelectorAll('.radio').forEach(x=>x.classList.remove('active'));r.classList.add('active')});
+document.getElementById('reason').addEventListener('input',e=>document.getElementById('count').textContent=e.target.value.length);
+document.getElementById('cancel').onclick=()=>{sr.value=37;er.value=42;document.getElementById('reason').value='';document.getElementById('count').textContent=0;update()};
+document.getElementById('submit').onclick=()=>{const t=document.getElementById('toast');t.textContent='✓ 已模拟提交，加班申请已进入审批流程';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)};
+update();
+</script>
+</body>
+</html>
